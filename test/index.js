@@ -27,28 +27,35 @@ const orchestrator = new Orchestrator({
     // for in-memory testing purposes.
     // Remove this middleware for other "real" network types which can actually
     // send messages across conductors
-    singleConductor,
+   // singleConductor,
   ),
 })
 
 const dna = Config.dna(dnaPath, 'scaffold-test')
-const conductorConfig = Config.gen({myInstanceName: dna})
+const conductorConfig = Config.gen({friendInstance: dna},
+ { network: {
+    type: 'sim2h',
+    sim2h_url: 'ws://localhost:9000',
+  }})
 
 orchestrator.registerScenario("description of example test", async (s, t) => {
 
   const {alice, bob} = await s.players({alice: conductorConfig, bob: conductorConfig}, true)
+  const agentAddrBob = await bob.instance('friendInstance').agentAddress
+  const agentAddrAlice = await alice.instance('friendInstance').agentAddress
 
-  // Make a call to a Zome function
-  // indicating the function, and passing it an input
-  const addr = await alice.call("myInstanceName", "my_zome", "create_my_entry", {"entry" : {"content":"sample content"}})
-
+  // Make a call to  Zome function make_fiend_request
+  const makeFriend = await alice.call("friendInstance", "friends", "make_friend_request", {"friend_address" : agentAddrBob})
+  console.log("friend request result: ",makeFriend)
+  
   // Wait for all network activity to settle
   await s.consistency()
+  
+  const friends = await bob.call("friendInstance", "friends", "get_friends", {})
 
-  const result = await bob.call("myInstanceName", "my_zome", "get_my_entry", {"address": addr.Ok})
-
-  // check for equality of the actual and expected results
-  t.deepEqual(result, { Ok: { App: [ 'my_entry', '{"content":"sample content"}' ] } })
+  // check that bob has a friend and the friend is Alice
+  t.notEquals(friends.Ok.length, 0)
+  t.equals(friends.Ok[0], agentAddrAlice)
 })
 
 orchestrator.run()

@@ -54,10 +54,18 @@ pub fn entry_def() -> ValidatingEntryType {
     )
 }
 
+pub fn get_friends() -> ZomeApiResult<Vec<Address>> {
+    let link_results = hdk::get_links(
+        &AGENT_ADDRESS.clone(), 
+        LinkMatch::Exactly("friend->friend_request"),
+        LinkMatch::Any
+        )?;
+    Ok(link_results.tags().into_iter().map(|tag| Address::from(tag)).collect::<Vec<Address>>())
+}
+
 pub fn create_friend_request(request: FriendRequest, provenance: Provenance) -> ZomeApiResult<Address> {
     let friend_address = provenance.source();
     let address = commit_with_provenance(&request.entry(), provenance)?;
-
     hdk::link_entries(
         &AGENT_ADDRESS.clone(),
         &address,

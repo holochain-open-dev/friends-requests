@@ -66,6 +66,9 @@ mod friends_requests_zome {
             Timeout::default(),
         )?;
 
+        if result.contains("Error"){
+            return Err(ZomeApiError::from(String::from(result)));
+        }
         hdk::commit_capability_claim(
             "see_profile",
             friend_address,
@@ -73,6 +76,12 @@ mod friends_requests_zome {
         )?;
 
         Ok(())
+    }
+
+
+    #[zome_fn("hc_public")]
+    fn get_friends() -> ZomeApiResult<Vec<Address>> {
+        request::get_friends()
     }
 
     #[receive]
@@ -90,7 +99,7 @@ mod friends_requests_zome {
                 json!(r).to_string() */
                 match message::handle_friend_request(address, message) {
                     Ok(capability_address) => capability_address,
-                    Err(error) => format!("Cannot validate friend request: {:?}", error),
+                    Err(error) => format!("Error Cannot validate friend request: {:?}", error),
                 }
             }
         }
